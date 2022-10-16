@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import joblib
-import matplotlib.pyplot as plt
 from scipy.sparse import csr_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import linear_kernel, cosine_similarity
