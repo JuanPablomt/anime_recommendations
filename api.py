@@ -28,11 +28,8 @@ anime = "https://drive.google.com/uc?id=" + anime.split("/")[-2]
 anime_with_synopsis = "https://drive.google.com/file/d/1R7tnsvZvif5iaMzJ7L8U3KdveZeCYXu7/view?usp=sharing"
 anime_with_synopsis = "https://drive.google.com/uc?id=" + anime_with_synopsis.split("/")[-2]
 
-rating_complete = "https://drive.google.com/u/0/uc?id=1ohR2nBdb_Dj6ywydBtJtZk96qlQaPCc8&export=download&confirm=t&uuid=fe5baf63-ecd4-4459-90fd-a565e203acb5"
-
 anime_info_df = pd.read_csv(anime)
 anime_desc_df = pd.read_csv(anime_with_synopsis)
-rating_df = pd.read_csv(rating_complete)
 
 anime_df = pd.merge(anime_desc_df,anime_info_df[['MAL_ID','Type','Popularity','Members','Favorites']],on='MAL_ID')
 
@@ -128,41 +125,9 @@ def hybrid_recommendations(user_id,title):
     result = qualified[['MAL_ID','Name','Genres','Score']]
     return result.head(10)    
 
-
-list_of_tuples = [(x,y) for x,y in zip(rating_df['user_id'], rating_df['anime_id'])]
-
-user_dict = {}
-for entry in list_of_tuples:
-    if entry[0] not in user_dict:
-        user_dict[entry[0]] = [entry[1]]
-    else:
-        user_dict[entry[0]].append(entry[1])
-
 @app.get('/animes/{malID}/{animeName}')
 def user_detail(malID: int, animeName: str):
     recommendations = hybrid_recommendations(malID, animeName)
     aray_name = recommendations['Name']
-    main_anime = [malID, animeName]
-    searched = anime_df.loc[anime_df['Name'] == main_anime[1]]
-    # validation
-    id_main = searched['MAL_ID'].values[0]
-
-    users_have_seen_main = {}
-    for user in user_dict.items():
-        if id_main in user[1]:
-            users_have_seen_main[user[0]] = user[1]
-            
-    ids_of_recom = list(recommendations['MAL_ID'].values)
-    score = []
-    for recom in ids_of_recom:
-        count = 0
-        for user in users_have_seen_main.items():
-            if recom in user[1]:
-                count+=1    
-        # search_name = anime_df.loc[anime_df['MAL_ID'] == recom]["Name"].values[0]
-        score.append(count/len(users_have_seen_main))
-
-    # print(type(aray), type(score))
-    # 'Recommendations': aray, 
     
-    return {'Recommendations': aray_name, 'Scores': score}
+    return {'Recommendations': aray_name}
