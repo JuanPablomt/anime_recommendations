@@ -16,28 +16,28 @@ import warnings; warnings.simplefilter('ignore')
 
 app = FastAPI()
 
-
 # if traing make sure to have rating_df = pd.read_csv("./datasets/rating_complete.csv")
 # and have rating_complete localy and change filepath accordingly
 skip_train = True
 
-
 print("skip training: " + str(skip_train))
+
 anime = "https://drive.google.com/file/d/1yo4ZdHoS-j5dJKUF8TRDt3_TQ0KnV3wb/view?usp=sharing"
 anime = "https://drive.google.com/uc?id=" + anime.split("/")[-2]
 
 anime_with_synopsis = "https://drive.google.com/file/d/1R7tnsvZvif5iaMzJ7L8U3KdveZeCYXu7/view?usp=sharing"
 anime_with_synopsis = "https://drive.google.com/uc?id=" + anime_with_synopsis.split("/")[-2]
 
-rating_complete = "https://drive.google.com/file/d/1ohR2nBdb_Dj6ywydBtJtZk96qlQaPCc8/view?usp=sharing"
-rating_complete = "https://drive.google.com/uc?id=" + rating_complete.split("/")[-2]
+rating_complete = "https://drive.google.com/u/0/uc?id=1ohR2nBdb_Dj6ywydBtJtZk96qlQaPCc8&export=download&confirm=t&uuid=fe5baf63-ecd4-4459-90fd-a565e203acb5"
 
 anime_info_df = pd.read_csv(anime)
 anime_desc_df = pd.read_csv(anime_with_synopsis)
+# rating_df = pd.read_csv(rating_complete)
+rating_df = pd.read_csv("./rating_complete.csv")
 
-if not skip_train:
+# if not skip_train:
     # rating compete too large to get from web, if model is saved there is no need for this import
-    rating_df = pd.read_csv(rating_complete)
+    # rating_df = pd.read_csv(rating_complete)
 
 anime_df = pd.merge(anime_desc_df,anime_info_df[['MAL_ID','Type','Popularity','Members','Favorites']],on='MAL_ID')
 
@@ -81,9 +81,7 @@ def content_recommendations(title):
 
 
 svd = SVD()
-
 filename = 'finalized_model.sav'
-
 
 if not skip_train:
     rating_df = rating_df.drop(rating_df.index[100_000: ])
@@ -97,8 +95,6 @@ if not skip_train:
 
 if skip_train:
     svd = joblib.load(filename)
-
-svd.predict(1, 356, 5)
 
 print("model done")
 
@@ -137,13 +133,41 @@ def hybrid_recommendations(user_id,title):
     result = qualified[['MAL_ID','Name','Genres','Score']]
     return result.head(10)    
 
+
+list_of_tuples = [(x,y) for x,y in zip(rating_df['user_id'], rating_df['anime_id'])]
+
+user_dict = {}
+for entry in list_of_tuples:
+    if entry[0] not in user_dict:
+        user_dict[entry[0]] = [entry[1]]
+    else:
+        user_dict[entry[0]].append(entry[1])
+
 @app.get('/animes/{malID}/{animeName}')
 def user_detail(malID: int, animeName: str):
-    print("getting anime for " + animeName)
     recommendations = hybrid_recommendations(malID, animeName)
-    aray = recommendations['Name']
-    response = []
-    for i in range(0,9):
-        response.append(aray.iat[i])
-        print(aray.iat[i])
-    return {'Recommendations': aray}
+    aray_name = recommendations['Name']
+    main_anime = [malID, animeName]
+    searched = anime_df.loc[anime_df['Name'] == main_anime[1]]
+    # validation
+    id_main = searched['MAL_ID'].values[0]
+
+    users_have_seen_main = {}
+    for user in user_dict.items():
+        if id_main in user[1]:
+            users_have_seen_main[user[0]] = user[1]
+            
+    ids_of_recom = list(recommendations['MAL_ID'].values)
+    score = []
+    for recom in ids_of_recom:
+        count = 0
+        for user in users_have_seen_main.items():
+            if recom in user[1]:
+                count+=1    
+        # search_name = anime_df.loc[anime_df['MAL_ID'] == recom]["Name"].values[0]
+        score.append(count/len(users_have_seen_main))
+
+    # print(type(aray), type(score))
+    # 'Recommendations': aray, 
+    
+    return {'Recommendations': aray_name, 'Scores': score}
