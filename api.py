@@ -32,12 +32,7 @@ rating_complete = "https://drive.google.com/u/0/uc?id=1ohR2nBdb_Dj6ywydBtJtZk96q
 
 anime_info_df = pd.read_csv(anime)
 anime_desc_df = pd.read_csv(anime_with_synopsis)
-# rating_df = pd.read_csv(rating_complete)
-rating_df = pd.read_csv("./rating_complete.csv")
-
-# if not skip_train:
-    # rating compete too large to get from web, if model is saved there is no need for this import
-    # rating_df = pd.read_csv(rating_complete)
+rating_df = pd.read_csv(rating_complete)
 
 anime_df = pd.merge(anime_desc_df,anime_info_df[['MAL_ID','Type','Popularity','Members','Favorites']],on='MAL_ID')
 
